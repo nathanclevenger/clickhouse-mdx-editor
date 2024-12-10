@@ -10,26 +10,22 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function generateSqid(): string {
-  return sqids.encode([Date.now()])
+  const sqid = sqids.encode([Date.now()])
+  console.log('Utils: Generated new sqid:', sqid)
+  return sqid
 }
 
 export function generateFrontmatter(namespace: string) {
+  console.log('Utils: Generating frontmatter for namespace:', namespace)
   const id = `${namespace}/ideas/${generateSqid()}`
-  // const type = id.split('/').slice(0, -1).join('/')
-  // const context = type.split('/').slice(0, -1).join('/')
-
-  return {
-    // _context: context,
-    // _type: type,
-    _id: id
-  }
+  const frontmatter = { _id: id }
+  console.log('Utils: Generated frontmatter:', frontmatter)
+  return frontmatter
 }
 
 export function createDefaultDocument(frontmatter: Record<string, string>) {
+  console.log('Utils: Creating default document with frontmatter:', frontmatter)
   const spacings: Record<string, number> = {
-    // _context: 3,
-    // _type: 6,
-    // _id: 8
     _id: 1
   }
 
@@ -40,16 +36,19 @@ export function createDefaultDocument(frontmatter: Record<string, string>) {
     })
     .join('\n')
 
-  return `---
+  const document = `---
 ${yaml}
 ---
 
 # 
 
 `
+  console.log('Utils: Created default document:', document)
+  return document
 }
 
 export function formatMetadata(data: Record<string, unknown>): string {
+  console.log('Utils: Formatting metadata')
   // Filter out underscore prefixed keys and create new object
   const filteredData = Object.entries(data).reduce((acc, [key, value]) => {
     if (!key.startsWith('_')) {
@@ -64,15 +63,19 @@ export function formatMetadata(data: Record<string, unknown>): string {
   }
 
   // Convert to YAML and clean up
-  return yaml.dump(filteredData, {
+  const formatted = yaml.dump(filteredData, {
     indent: 2,
     lineWidth: -1,
     flowLevel: 1,
     noRefs: true
   }).replace(/[{}\n]/g, ' ').trim()
+
+  console.log('Utils: Formatted metadata result:', formatted)
+  return formatted
 }
 
 export function getDocumentContent(mdx: string): string {
+  console.log('Utils: Getting document content')
   // Remove YAML frontmatter
   const content = mdx.replace(/^---\n[\s\S]*?\n---\n/, '')
   
@@ -83,5 +86,7 @@ export function getDocumentContent(mdx: string): string {
     .filter(Boolean)[0] || ''
 
   // Remove markdown heading markers and trim
-  return firstLine.replace(/^#+\s*/, '').trim()
+  const result = firstLine.replace(/^#+\s*/, '').trim()
+  console.log('Utils: Document content result:', result)
+  return result
 }

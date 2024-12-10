@@ -8,6 +8,12 @@ interface MonacoEditorProps {
 }
 
 export function MonacoEditor({ value, language = 'markdown', options = {} }: MonacoEditorProps) {
+  console.log('MonacoEditor: Rendering', { 
+    hasValue: !!value,
+    language,
+    hasCustomOptions: Object.keys(options).length > 0
+  })
+
   const { selectedDocument, theme, updateSelectedDocument } = useEditorStore()
   const editorValue = value ?? selectedDocument?.mdx ?? ''
 
@@ -19,7 +25,15 @@ export function MonacoEditor({ value, language = 'markdown', options = {} }: Mon
         theme={theme === 'dark' ? 'vs-dark' : 'light'}
         value={editorValue}
         onChange={(value) => {
-          if (!value || value === editorValue || options.readOnly) return
+          if (!value || value === editorValue || options.readOnly) {
+            console.log('MonacoEditor: Change ignored', {
+              noValue: !value,
+              unchanged: value === editorValue,
+              readOnly: options.readOnly
+            })
+            return
+          }
+          console.log('MonacoEditor: Content changed, length:', value.length)
           updateSelectedDocument(value)
         }}
         options={{

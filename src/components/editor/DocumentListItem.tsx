@@ -8,6 +8,11 @@ interface DocumentListItemProps {
 }
 
 export function DocumentListItem({ document, isSelected, onClick }: DocumentListItemProps) {
+  console.log('DocumentListItem: Rendering', { 
+    id: document.id, 
+    isSelected 
+  })
+
   const data = JSON.parse(document.data)
   const displayName = data._name || data._id?.split('/').pop() || document.id
   const metadata = formatMetadata(data)
@@ -18,7 +23,10 @@ export function DocumentListItem({ document, isSelected, onClick }: DocumentList
       className={`border-b last:border-b-0 border-border/40 cursor-pointer ${
         isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/50'
       }`}
-      onClick={onClick}
+      onClick={() => {
+        console.log('DocumentListItem: Selected', document.id)
+        onClick()
+      }}
     >
       <div className='p-3 space-y-1'>
         <div className='font-medium truncate'>{displayName}</div>

@@ -54,6 +54,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   },
   selectedDocument: null,
   setSelectedDocument: (document) => {
+    console.log('Setting selected document:', document)
     set({ 
       selectedDocument: document,
       activeTab: document ? get().activeTab : 'db' // Switch to DB tab if no document
@@ -108,6 +109,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     setSelectedDocument(newDocument)
   },
   saveDocument: (document) => {
+    console.log('Saving document:', document)
     const { documents, setDocuments, setSelectedDocument } = get()
     const frontmatter = extractFrontmatter(document.mdx)
     const updatedDocument = {
@@ -129,14 +131,19 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     localStorage.setItem('documents', JSON.stringify(updatedDocuments))
   },
   updateSelectedDocument: (update) => {
+    console.log('Updating selected document with:', update)
     const { selectedDocument, saveDocument } = get()
-    if (!selectedDocument) return
+    if (!selectedDocument) {
+      console.warn('No selected document to update')
+      return
+    }
 
     try {
       const newMdx = typeof update === 'function' 
         ? update(selectedDocument.mdx)
         : update
 
+      console.log('New MDX content:', newMdx)
       saveDocument({ ...selectedDocument, mdx: newMdx })
     } catch (error) {
       console.error('Failed to update document:', error)

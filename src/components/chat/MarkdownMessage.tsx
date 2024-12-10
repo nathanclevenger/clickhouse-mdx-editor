@@ -9,7 +9,7 @@ interface MarkdownMessageProps {
 
 export function MarkdownMessage({ content, className }: MarkdownMessageProps) {
   return (
-    <div className={cn('prose dark:prose-invert max-w-none', className)}>
+    <div className={cn('prose dark:prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0', className)}>
       <ReactMarkdown 
         remarkPlugins={[remarkGfm]}
         components={{

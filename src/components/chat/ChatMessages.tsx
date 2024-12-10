@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { StickToBottom, useStickToBottomContext } from 'use-stick-to-bottom'
 import { ChatMessage } from './ChatMessage'
 import { useChatStore } from '@/lib/chat/store'

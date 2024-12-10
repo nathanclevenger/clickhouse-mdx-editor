@@ -9,7 +9,7 @@ export function EditorTabs() {
   const { selectedDocument } = useEditorStore()
   const [activeTab, setActiveTab] = useState('mdx')
   const mdxContent = selectedDocument?.mdx || ''
-  const ast = useDebouncedAST(mdxContent)
+  const ast = useDebouncedAST(mdxContent, 100) // Updated to 100ms
 
   return (
     <div className="absolute inset-0 flex flex-col">
