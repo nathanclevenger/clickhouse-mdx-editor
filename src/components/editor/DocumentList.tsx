@@ -14,9 +14,11 @@ export function DocumentList() {
   const filteredDocuments = documents.filter((doc) => {
     if (!searchQuery) return true
     const searchLower = searchQuery.toLowerCase()
+    const data = JSON.parse(doc.data)
     return (
       doc.id.toLowerCase().includes(searchLower) ||
-      JSON.parse(doc.data).name?.toLowerCase().includes(searchLower)
+      data._name?.toLowerCase().includes(searchLower) ||
+      data._id?.toLowerCase().includes(searchLower)
     )
   })
 
@@ -58,7 +60,6 @@ export function DocumentList() {
         className={`divide-y divide-border/40 transition-transform ${
           isAtBoundary ? 'animate-bounce-scroll' : ''
         }`}
-        role='list'
       >
         {filteredDocuments.length === 0 ? (
           <div className='text-center text-muted-foreground p-4'>
@@ -67,7 +68,7 @@ export function DocumentList() {
         ) : (
           filteredDocuments.map((doc) => (
             <DocumentListItem
-              key={doc.id}
+              key={`${doc.id}-${doc.updated}`}
               document={doc}
               isSelected={selectedDocument?.id === doc.id}
               onClick={() => setSelectedDocument(doc)}

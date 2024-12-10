@@ -1,6 +1,7 @@
 import { create } from 'zustand'
-import { ClickHouseConfig, Document, Message } from './types'
+import { ClickHouseConfig, Document } from './types'
 import { generateFrontmatter, createDefaultDocument } from './utils'
+import { useChatStore } from './chat/store'
 import yaml from 'js-yaml'
 
 interface EditorStore {
@@ -16,7 +17,7 @@ interface EditorStore {
   setSearchQuery: (query: string) => void
   addDocument: (document?: Partial<Document>) => void
   saveDocument: (document: Document) => void
-  updateSelectedDocument: (mdx: string) => void
+  updateSelectedDocument: (update: string | ((prev: string) => string)) => void
   activeTab: 'db' | 'ai'
   setActiveTab: (tab: 'db' | 'ai') => void
   searchInputRef: React.RefObject<HTMLInputElement> | null
@@ -25,8 +26,6 @@ interface EditorStore {
   setChatInputRef: (ref: React.RefObject<HTMLTextAreaElement>) => void
   focusSearchInput: () => void
   focusChatInput: () => void
-  messages: Message[]
-  setMessages: (messages: Message[]) => void
   resetChat: () => void
 }
 
@@ -54,7 +53,14 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     localStorage.setItem('documents', JSON.stringify(documents))
   },
   selectedDocument: null,
-  setSelectedDocument: (document) => set({ selectedDocument: document }),
+  setSelectedDocument: (document) => {
+    set({ 
+      selectedDocument: document,
+      activeTab: document ? get().activeTab : 'db' // Switch to DB tab if no document
+    })
+    // Reset chat messages when document changes
+    useChatStore.getState().resetChat()
+  },
   theme: 'dark',
   setTheme: (theme) => set({ theme }),
   searchQuery: '',
@@ -65,14 +71,6 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   setSearchInputRef: (ref) => set({ searchInputRef: ref }),
   chatInputRef: null,
   setChatInputRef: (ref) => set({ chatInputRef: ref }),
-  messages: [],
-  setMessages: (messages) => {
-    if (Array.isArray(messages)) {
-      set({ messages })
-    } else {
-      set({ messages: [] })
-    }
-  },
   focusSearchInput: () => {
     const { searchInputRef } = get()
     if (searchInputRef?.current) {
@@ -86,7 +84,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     }
   },
   resetChat: () => {
-    set({ messages: [] })
+    useChatStore.getState().resetChat()
   },
   addDocument: (document) => {
     const { documents, setDocuments, setSelectedDocument, config } = get()
@@ -97,7 +95,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     const now = new Date().toISOString()
     
     const newDocument: Document = {
-      id: frontmatter['@id'],
+      id: frontmatter._id,
       mdx,
       data: JSON.stringify(frontmatter),
       created: now,
@@ -118,8 +116,8 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       updated: new Date().toISOString()
     }
 
-    if (frontmatter['@id'] && frontmatter['@id'] !== document.id) {
-      updatedDocument.id = frontmatter['@id'] as string
+    if (frontmatter._id && frontmatter._id !== document.id) {
+      updatedDocument.id = frontmatter._id as string
     }
 
     const updatedDocuments = documents.map((doc) =>
@@ -130,10 +128,18 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     setSelectedDocument(updatedDocument)
     localStorage.setItem('documents', JSON.stringify(updatedDocuments))
   },
-  updateSelectedDocument: (mdx: string) => {
+  updateSelectedDocument: (update) => {
     const { selectedDocument, saveDocument } = get()
-    if (selectedDocument) {
-      saveDocument({ ...selectedDocument, mdx })
+    if (!selectedDocument) return
+
+    try {
+      const newMdx = typeof update === 'function' 
+        ? update(selectedDocument.mdx)
+        : update
+
+      saveDocument({ ...selectedDocument, mdx: newMdx })
+    } catch (error) {
+      console.error('Failed to update document:', error)
     }
   }
 }))

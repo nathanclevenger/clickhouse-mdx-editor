@@ -1,5 +1,6 @@
 import { memo } from 'react'
 import { cn } from '@/lib/utils'
+import { MarkdownMessage } from './MarkdownMessage'
 
 interface ChatMessageProps {
   role: 'user' | 'assistant'
@@ -11,13 +12,21 @@ export const ChatMessage = memo(function ChatMessage({ role, content, isStreamin
   return (
     <div
       className={cn(
-        'p-4 rounded-lg break-words',
+        'rounded-lg',
         role === 'user'
-          ? 'bg-primary text-primary-foreground ml-8'
+          ? 'bg-accent/20 text-accent-foreground ml-8'
           : 'bg-muted mr-8'
       )}
     >
-      {content || (role === 'assistant' && isStreaming ? '...' : '')}
+      <div className="px-4 py-3">
+        {content ? (
+          <div className="prose-sm dark:prose-invert max-w-none break-words">
+            <MarkdownMessage content={content} />
+          </div>
+        ) : (
+          role === 'assistant' && isStreaming && '...'
+        )}
+      </div>
     </div>
   )
 })

@@ -1,6 +1,7 @@
 import OpenAI from 'openai'
 import type { ChatConfig } from './types'
 import { ChatAPIError, ChatConfigError, ChatStreamError } from './errors'
+import { getSystemMessage } from './system-message'
 
 export async function streamChatResponse(
   message: string,
@@ -19,7 +20,10 @@ export async function streamChatResponse(
   try {
     const stream = await openai.chat.completions.create({
       model: config.model || 'gpt-4',
-      messages: [{ role: 'user', content: message }],
+      messages: [
+        { role: 'system', content: getSystemMessage() },
+        { role: 'user', content: message }
+      ],
       stream: true,
       temperature: config.temperature ?? 0.7,
       max_tokens: config.maxTokens ?? 1000,

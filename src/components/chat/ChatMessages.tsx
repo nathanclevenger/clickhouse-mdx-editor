@@ -1,4 +1,3 @@
-import { useEffect, useRef } from 'react'
 import { StickToBottom, useStickToBottomContext } from 'use-stick-to-bottom'
 import { ChatMessage } from './ChatMessage'
 import { useChatStore } from '@/lib/chat/store'
@@ -10,7 +9,7 @@ export function ChatMessages() {
 
   return (
     <StickToBottom className='h-full relative' resize='smooth' initial='smooth'>
-      <StickToBottom.Content className='p-4 space-y-4'>
+      <StickToBottom.Content className='space-y-3 p-4'>
         {messages.map((message) => (
           <ChatMessage
             key={message.id}

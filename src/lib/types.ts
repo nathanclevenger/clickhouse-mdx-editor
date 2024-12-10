@@ -7,7 +7,6 @@ export interface ClickHouseConfig {
   oplogTable: string
   namespace: string
   openaiApiKey: string
-  anthropicApiKey: string
   embeddingModel: string
   embeddingDimensions: number
   chatModel: string

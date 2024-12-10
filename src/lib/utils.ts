@@ -15,21 +15,22 @@ export function generateSqid(): string {
 
 export function generateFrontmatter(namespace: string) {
   const id = `${namespace}/ideas/${generateSqid()}`
-  const type = id.split('/').slice(0, -1).join('/')
-  const context = type.split('/').slice(0, -1).join('/')
+  // const type = id.split('/').slice(0, -1).join('/')
+  // const context = type.split('/').slice(0, -1).join('/')
 
   return {
-    '@context': context,
-    '@type': type,
-    '@id': id
+    // _context: context,
+    // _type: type,
+    _id: id
   }
 }
 
 export function createDefaultDocument(frontmatter: Record<string, string>) {
   const spacings: Record<string, number> = {
-    '@context': 3,
-    '@type': 6,
-    '@id': 8
+    // _context: 3,
+    // _type: 6,
+    // _id: 8
+    _id: 1
   }
 
   const yaml = Object.entries(frontmatter)
@@ -43,15 +44,15 @@ export function createDefaultDocument(frontmatter: Record<string, string>) {
 ${yaml}
 ---
 
-# New Document
+# 
 
-Start writing...`
+`
 }
 
 export function formatMetadata(data: Record<string, unknown>): string {
-  // Filter out @ prefixed keys and create new object
+  // Filter out underscore prefixed keys and create new object
   const filteredData = Object.entries(data).reduce((acc, [key, value]) => {
-    if (!key.startsWith('@')) {
+    if (!key.startsWith('_')) {
       acc[key] = value
     }
     return acc

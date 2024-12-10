@@ -2,20 +2,22 @@ import { useState, useCallback } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ConfigForm } from '../ConfigForm'
 import { useEditorStore } from '@/lib/store'
-import { ChatMessages } from './ChatMessages'
-import { ChatInput } from './ChatInput'
+import { ChatMessages } from '../chat/ChatMessages'
+import { ChatInput } from '../chat/ChatInput'
 import { useChatStore } from '@/lib/chat/store'
 import { createMessage } from '@/lib/chat/utils'
 import { streamChatResponse } from '@/lib/chat/service'
+import { useMDXChat } from '@/hooks/use-mdx-chat'
 
 export function ChatView() {
-  const { config } = useEditorStore()
+  const { config, selectedDocument, updateSelectedDocument } = useEditorStore()
   const { messages, addMessage, updateMessage, setIsStreaming, isStreaming } = useChatStore()
   const [inputValue, setInputValue] = useState('')
   const [showSettings, setShowSettings] = useState(!config?.openaiApiKey)
+  const { handleChatContent } = useMDXChat()
 
   const handleSubmit = useCallback(async () => {
-    if (!inputValue.trim() || isStreaming) return
+    if (!inputValue.trim() || isStreaming || !selectedDocument) return
     if (!config?.openaiApiKey) {
       setShowSettings(true)
       return
@@ -23,6 +25,9 @@ export function ChatView() {
 
     const userMessage = createMessage(inputValue.trim(), 'user')
     const assistantMessage = createMessage('', 'assistant')
+
+    // Append user message to editor
+    updateSelectedDocument(prev => `${prev}\n\n> ${userMessage.content}`)
 
     addMessage(userMessage)
     setInputValue('')
@@ -36,7 +41,12 @@ export function ChatView() {
           apiKey: config.openaiApiKey,
           model: config.chatModel || 'gpt-4',
         },
-        (chunk) => updateMessage(assistantMessage.id, chunk)
+        (chunk) => {
+          const processedChunk = handleChatContent(chunk)
+          if (processedChunk) {
+            updateMessage(assistantMessage.id, processedChunk)
+          }
+        }
       )
     } catch (error) {
       console.error('Chat error:', error)
@@ -50,20 +60,22 @@ export function ChatView() {
     } finally {
       setIsStreaming(false)
     }
-  }, [inputValue, isStreaming, config, addMessage, updateMessage, setIsStreaming])
+  }, [inputValue, isStreaming, config, addMessage, updateMessage, setIsStreaming, handleChatContent, selectedDocument, updateSelectedDocument])
 
   return (
     <div className='flex flex-col h-full'>
-      <div className='flex-1 min-h-0'>
+      <div className='flex-1 min-h-0 relative'>
         <ChatMessages />
       </div>
-      <ChatInput
-        value={inputValue}
-        onChange={setInputValue}
-        onSubmit={handleSubmit}
-        isStreaming={isStreaming}
-        onSettingsClick={() => !config?.openaiApiKey && setShowSettings(true)}
-      />
+      <div className='shrink-0 border-t bg-background'>
+        <ChatInput
+          value={inputValue}
+          onChange={setInputValue}
+          onSubmit={handleSubmit}
+          isStreaming={isStreaming}
+          onSettingsClick={() => !config?.openaiApiKey && setShowSettings(true)}
+        />
+      </div>
 
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
         <DialogContent>

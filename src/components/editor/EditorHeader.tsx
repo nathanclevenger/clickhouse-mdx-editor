@@ -17,14 +17,14 @@ export function EditorHeader() {
 
   return (
     <div className='flex h-[45px] items-center justify-between border-b px-2'>
-      {documentData?.id ? (
+      {documentData?._id ? (
         <a
-          href={documentData.id}
+          href={documentData._id}
           target='_blank'
           rel='noopener noreferrer'
           className='text-sm hover:underline text-muted-foreground'
         >
-          {documentData.id}
+          {documentData._id}
         </a>
       ) : (
         <div />

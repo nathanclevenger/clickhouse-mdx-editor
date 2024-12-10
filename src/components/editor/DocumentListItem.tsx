@@ -9,7 +9,7 @@ interface DocumentListItemProps {
 
 export function DocumentListItem({ document, isSelected, onClick }: DocumentListItemProps) {
   const data = JSON.parse(document.data)
-  const displayName = data['@name'] || data['@id']?.split('/').pop() || document.id
+  const displayName = data._name || data._id?.split('/').pop() || document.id
   const metadata = formatMetadata(data)
   const content = getDocumentContent(document.mdx)
 
