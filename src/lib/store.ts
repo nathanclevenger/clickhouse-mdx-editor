@@ -1,8 +1,7 @@
 import { create } from 'zustand'
-import { ClickHouseConfig, Document } from './types'
-import { generateFrontmatter, createDefaultDocument } from './utils'
 import { useChatStore } from './chat/store'
 import yaml from 'js-yaml'
+import type { ClickHouseConfig, Document } from './types'
 
 interface EditorStore {
   config: ClickHouseConfig | null
@@ -18,6 +17,7 @@ interface EditorStore {
   addDocument: (document?: Partial<Document>) => void
   saveDocument: (document: Document) => void
   updateSelectedDocument: (update: string | ((prev: string) => string)) => void
+  appendText: (text: string, addNewline?: boolean) => void
   activeTab: 'db' | 'ai'
   setActiveTab: (tab: 'db' | 'ai') => void
   searchInputRef: React.RefObject<HTMLInputElement> | null
@@ -27,18 +27,10 @@ interface EditorStore {
   focusSearchInput: () => void
   focusChatInput: () => void
   resetChat: () => void
-}
-
-function extractFrontmatter(mdx: string): Record<string, unknown> {
-  try {
-    const match = mdx.match(/^---\n([\s\S]*?)\n---/)
-    if (match) {
-      return yaml.load(match[1]) as Record<string, unknown>
-    }
-  } catch (e) {
-    console.error('Failed to parse frontmatter:', e)
-  }
-  return {}
+  buffer: string
+  appendToBuffer: (text: string) => void
+  flushBuffer: () => void
+  clearBuffer: () => void
 }
 
 export const useEditorStore = create<EditorStore>((set, get) => ({
@@ -54,12 +46,10 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   },
   selectedDocument: null,
   setSelectedDocument: (document) => {
-    console.log('Setting selected document:', document)
     set({ 
       selectedDocument: document,
-      activeTab: document ? get().activeTab : 'db' // Switch to DB tab if no document
+      activeTab: document ? get().activeTab : 'db'
     })
-    // Reset chat messages when document changes
     useChatStore.getState().resetChat()
   },
   theme: 'dark',
@@ -91,8 +81,10 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     const { documents, setDocuments, setSelectedDocument, config } = get()
     if (!config?.namespace) return
 
-    const frontmatter = generateFrontmatter(config.namespace)
-    const mdx = createDefaultDocument(frontmatter)
+    const frontmatter = {
+      _id: `${config.namespace}/ideas/${Date.now()}`
+    }
+    const mdx = `---\n_id: ${frontmatter._id}\n---\n\n# \n`
     const now = new Date().toISOString()
     
     const newDocument: Document = {
@@ -109,9 +101,8 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     setSelectedDocument(newDocument)
   },
   saveDocument: (document) => {
-    console.log('Saving document:', document)
     const { documents, setDocuments, setSelectedDocument } = get()
-    const frontmatter = extractFrontmatter(document.mdx)
+    const frontmatter = yaml.load(document.mdx.match(/^---([\s\S]*?)---/)?.[1] || '') as Record<string, unknown>
     const updatedDocument = {
       ...document,
       data: JSON.stringify(frontmatter),
@@ -128,25 +119,72 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     
     setDocuments(updatedDocuments)
     setSelectedDocument(updatedDocument)
-    localStorage.setItem('documents', JSON.stringify(updatedDocuments))
   },
   updateSelectedDocument: (update) => {
-    console.log('Updating selected document with:', update)
     const { selectedDocument, saveDocument } = get()
-    if (!selectedDocument) {
-      console.warn('No selected document to update')
-      return
-    }
+    if (!selectedDocument) return
 
     try {
       const newMdx = typeof update === 'function' 
         ? update(selectedDocument.mdx)
         : update
 
-      console.log('New MDX content:', newMdx)
       saveDocument({ ...selectedDocument, mdx: newMdx })
     } catch (error) {
       console.error('Failed to update document:', error)
     }
+  },
+  appendText: (text: string, addNewline = false) => {
+    const { selectedDocument, updateSelectedDocument } = get()
+    if (!selectedDocument) return
+
+    updateSelectedDocument(prev => {
+      const separator = addNewline ? '\n\n' : ''
+      return `${prev}${separator}${text}`
+    })
+  },
+  buffer: '',
+  appendToBuffer: (text: string) => {
+    console.log('EditorStore: appendToBuffer', { chunk: text })
+    set(state => ({ 
+      buffer: state.buffer + text 
+    }))
+  },
+  clearBuffer: () => {
+    console.log('EditorStore: clearBuffer')
+    set({ buffer: '' })
+  },
+  flushBuffer: () => {
+    console.log('EditorStore: flushBuffer')
+    const { selectedDocument, buffer } = get()
+    if (!selectedDocument || !buffer) return
+
+    // Extract frontmatter and content
+    const frontmatterMatch = selectedDocument.mdx.match(/^---([\s\S]*?)---\n\n/)
+    const frontmatter = frontmatterMatch ? frontmatterMatch[0] : ''
+    const content = frontmatterMatch 
+      ? selectedDocument.mdx.slice(frontmatterMatch[0].length)
+      : selectedDocument.mdx
+
+    // Create new document content
+    const newMdx = `${frontmatter}${content}\n\n${buffer}`
+
+    // Update document
+    const updatedDocument = {
+      ...selectedDocument,
+      mdx: newMdx
+    }
+
+    // Update state
+    set(state => ({
+      selectedDocument: updatedDocument,
+      documents: state.documents.map(doc =>
+        doc.id === selectedDocument.id ? updatedDocument : doc
+      ),
+      buffer: ''
+    }))
+
+    // Save changes
+    get().saveDocument(updatedDocument)
   }
 }))

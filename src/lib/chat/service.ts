@@ -35,10 +35,11 @@ export async function streamChatResponse(
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content
       if (content) {
-        console.log('OpenAI: Processing content chunk:', content)
+        console.log('OpenAI: Raw chunk received:', content)
         onChunk(content)
       }
     }
+
     console.log('OpenAI: Stream completed')
   } catch (error) {
     console.error('OpenAI: Stream error:', error)

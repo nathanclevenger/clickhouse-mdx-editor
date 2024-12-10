@@ -3,21 +3,19 @@ import { twMerge } from 'tailwind-merge'
 import Sqids from 'sqids'
 import yaml from 'js-yaml'
 
+// Initialize Sqids with custom configuration for shorter IDs
 const sqids = new Sqids()
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function generateSqid(): string {
-  const sqid = sqids.encode([Date.now()])
-  console.log('Utils: Generated new sqid:', sqid)
-  return sqid
-}
 
 export function generateFrontmatter(namespace: string) {
   console.log('Utils: Generating frontmatter for namespace:', namespace)
-  const id = `${namespace}/ideas/${generateSqid()}`
+  const sqid = sqids.encode([Date.now()])
+  // Use the sqid instead of timestamp in the ID
+  const id = `${namespace}/ideas/${sqid}`
   const frontmatter = { _id: id }
   console.log('Utils: Generated frontmatter:', frontmatter)
   return frontmatter
@@ -89,4 +87,13 @@ export function getDocumentContent(mdx: string): string {
   const result = firstLine.replace(/^#+\s*/, '').trim()
   console.log('Utils: Document content result:', result)
   return result
+}
+
+export function extractFrontmatter(mdx: string): string {
+  const match = mdx.match(/^---([\s\S]*?)---/)
+  return match ? `---${match[1]}---\n\n` : ''
+}
+
+export function extractContent(mdx: string): string {
+  return mdx.replace(/^---[\s\S]*?---\n\n/, '')
 }

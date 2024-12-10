@@ -10,39 +10,40 @@ import { streamChatResponse } from '@/lib/chat/service'
 
 export function ChatView() {
   console.log('ChatView: Component rendered')
+  const { 
+    config, 
+    selectedDocument, 
+    appendToBuffer,
+    clearBuffer,
+    flushBuffer
+  } = useEditorStore()
 
-  // Use individual selectors to prevent unnecessary re-renders
-  const config = useEditorStore(state => state.config)
-  const selectedDocument = useEditorStore(state => state.selectedDocument)
-  const updateSelectedDocument = useEditorStore(state => state.updateSelectedDocument)
-  
-  const messages = useChatStore(state => state.messages)
-  const addMessage = useChatStore(state => state.addMessage)
-  const updateMessage = useChatStore(state => state.updateMessage)
-  const isStreaming = useChatStore(state => state.isStreaming)
-  const setIsStreaming = useChatStore(state => state.setIsStreaming)
-  const setCurrentChunk = useChatStore(state => state.setCurrentChunk)
+  const { 
+    messages, 
+    addMessage, 
+    updateMessage, 
+    isStreaming, 
+    setIsStreaming,
+    setCurrentChunk,
+    isFirstChunk,
+    setIsFirstChunk
+  } = useChatStore()
 
   const [inputValue, setInputValue] = useState('')
   const [showSettings, setShowSettings] = useState(!config?.openaiApiKey)
-  const [isFirstChunk, setIsFirstChunk] = useState(true)
-
-  console.log('ChatView: Current state:', {
-    hasConfig: !!config,
-    hasSelectedDocument: !!selectedDocument,
-    messageCount: messages.length,
-    isStreaming,
-    inputValue: inputValue.length,
-    isFirstChunk
-  })
 
   const handleSubmit = useCallback(async () => {
-    console.log('ChatView: Submit triggered')
+    console.log('ChatView: Submit triggered', {
+      hasInput: !!inputValue.trim(),
+      isStreaming,
+      hasDocument: !!selectedDocument
+    })
 
-    if (!inputValue.trim() || isStreaming) {
+    if (!inputValue.trim() || isStreaming || !selectedDocument) {
       console.log('ChatView: Submission blocked:', { 
         hasInput: !!inputValue.trim(), 
-        isStreaming 
+        isStreaming,
+        hasDocument: !!selectedDocument
       })
       return
     }
@@ -53,21 +54,19 @@ export function ChatView() {
       return
     }
 
-    if (!selectedDocument) {
-      console.log('ChatView: No document selected')
-      return
-    }
-
     console.log('ChatView: Starting chat submission')
-    setIsFirstChunk(true)
-
     const userMessage = createMessage(inputValue.trim(), 'user')
     const assistantMessage = createMessage('', 'assistant')
 
-    console.log('ChatView: Adding messages to store')
-    addMessage(userMessage)
+    // Reset states
+    clearBuffer()
+    setIsFirstChunk(true)
+    setCurrentChunk('')
     setInputValue('')
     setIsStreaming(true)
+
+    // Add messages
+    addMessage(userMessage)
     addMessage(assistantMessage)
 
     try {
@@ -78,34 +77,25 @@ export function ChatView() {
           apiKey: config.openaiApiKey,
           model: config.chatModel || 'gpt-4',
         },
-        (chunk) => {
-          console.log('ChatView: Received chunk:', { 
-            length: chunk.length,
-            isFirstChunk 
+        (chunk: string) => {
+          console.log('ChatView: Received chunk:', {
+            chunk,
+            length: chunk.length
           })
-
-          // Update current chunk in store
+          
+          // Update message in chat
+          updateMessage(assistantMessage.id, chunk)
+          
+          // Update current chunk display
           setCurrentChunk(chunk)
 
-          // Update document content
-          updateSelectedDocument(prev => {
-            if (isFirstChunk) {
-              console.log('ChatView: Processing first chunk')
-              setIsFirstChunk(false)
-              const separator = prev.trim() ? '\n\n' : ''
-              return `${prev}${separator}${chunk}`
-            } else {
-              console.log('ChatView: Processing subsequent chunk')
-              return `${prev}${chunk}`
-            }
-          })
-
-          // Update chat message
-          console.log('ChatView: Updating message:', assistantMessage.id)
-          updateMessage(assistantMessage.id, chunk)
+          // Append to buffer
+          appendToBuffer(chunk)
         }
       )
+
       console.log('ChatView: Stream completed')
+      flushBuffer()
     } catch (error) {
       console.error('ChatView: Error in chat stream:', error)
       if (error.name === 'ChatConfigError') {
@@ -118,20 +108,23 @@ export function ChatView() {
     } finally {
       console.log('ChatView: Finalizing chat submission')
       setIsStreaming(false)
-      setIsFirstChunk(true)
       setCurrentChunk('')
+      setIsFirstChunk(true)
+      clearBuffer()
     }
   }, [
     inputValue,
     isStreaming,
     config,
     selectedDocument,
-    updateSelectedDocument,
     addMessage,
     updateMessage,
     setIsStreaming,
     setCurrentChunk,
-    isFirstChunk
+    setIsFirstChunk,
+    appendToBuffer,
+    clearBuffer,
+    flushBuffer
   ])
 
   return (

@@ -1,5 +1,7 @@
-import { Editor } from '@monaco-editor/react'
+import { Editor, type Monaco } from '@monaco-editor/react'
 import { useEditorStore } from '@/lib/store'
+import { useEffect, useRef } from 'react'
+import type * as monacoEditor from 'monaco-editor'
 
 interface MonacoEditorProps {
   value?: string
@@ -16,6 +18,26 @@ export function MonacoEditor({ value, language = 'markdown', options = {} }: Mon
 
   const { selectedDocument, theme, updateSelectedDocument } = useEditorStore()
   const editorValue = value ?? selectedDocument?.mdx ?? ''
+  const editorRef = useRef<monacoEditor.editor.IStandaloneCodeEditor>()
+  const monacoRef = useRef<Monaco>()
+
+  function handleEditorDidMount(editor: monacoEditor.editor.IStandaloneCodeEditor, monaco: Monaco) {
+    editorRef.current = editor
+    monacoRef.current = monaco
+    console.log('MonacoEditor: Editor mounted')
+  }
+
+  // Update editor content directly when value changes
+  useEffect(() => {
+    if (editorRef.current && editorValue !== editorRef.current.getValue()) {
+      console.log('MonacoEditor: Updating editor value directly')
+      const position = editorRef.current.getPosition()
+      editorRef.current.setValue(editorValue)
+      if (position) {
+        editorRef.current.setPosition(position)
+      }
+    }
+  }, [editorValue])
 
   return (
     <div className='h-full'>
@@ -36,6 +58,7 @@ export function MonacoEditor({ value, language = 'markdown', options = {} }: Mon
           console.log('MonacoEditor: Content changed, length:', value.length)
           updateSelectedDocument(value)
         }}
+        onMount={handleEditorDidMount}
         options={{
           minimap: { enabled: false },
           wordWrap: 'on',

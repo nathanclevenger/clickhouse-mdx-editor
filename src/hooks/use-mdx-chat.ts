@@ -2,7 +2,7 @@ import { useCallback, useRef, useEffect } from 'react'
 import { useEditorStore } from '@/lib/store'
 
 export function useMDXChat() {
-  const { selectedDocument, updateSelectedDocument } = useEditorStore()
+  const { selectedDocument, appendText } = useEditorStore()
   const isFirstChunkRef = useRef(true)
 
   // Reset first chunk flag when document changes
@@ -24,35 +24,15 @@ export function useMDXChat() {
     })
 
     try {
-      if (isFirstChunkRef.current) {
-        console.log('MDXChat: Processing first chunk')
-        updateSelectedDocument(prev => {
-          const separator = prev.trim() ? '\n\n' : ''
-          const newContent = `${prev}${separator}${content}`
-          console.log('MDXChat: First chunk update:', {
-            prevLength: prev.length,
-            newLength: newContent.length
-          })
-          isFirstChunkRef.current = false
-          return newContent
-        })
-      } else {
-        console.log('MDXChat: Processing subsequent chunk')
-        updateSelectedDocument(prev => {
-          const newContent = `${prev}${content}`
-          console.log('MDXChat: Subsequent chunk update:', {
-            prevLength: prev.length,
-            newLength: newContent.length
-          })
-          return newContent
-        })
-      }
+      // Add newline before first chunk only
+      appendText(content, isFirstChunkRef.current)
+      isFirstChunkRef.current = false
     } catch (error) {
       console.error('MDXChat: Failed to update editor content:', error)
     }
 
     return content
-  }, [selectedDocument, updateSelectedDocument])
+  }, [selectedDocument, appendText])
 
   return { handleChatContent }
 }

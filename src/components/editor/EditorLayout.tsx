@@ -2,7 +2,6 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import { LeftPanel } from '@/components/editor/LeftPanel'
 import { EditorHeader } from '@/components/editor/EditorHeader'
 import { EditorTabs } from '@/components/editor/EditorTabs'
-import { StreamingIndicator } from './StreamingIndicator'
 
 export function EditorLayout() {
   return (
@@ -17,10 +16,6 @@ export function EditorLayout() {
             <EditorHeader />
             <div className='flex-1 relative'>
               <EditorTabs />
-            </div>
-            <div className="border-t p-2 flex justify-between items-center">
-              <div></div>
-              <StreamingIndicator />
             </div>
           </div>
         </ResizablePanel>
